@@ -8,56 +8,38 @@
 
 <style>
 body{
-font-family: Arial, sans-serif;
 margin:0;
-background: linear-gradient(135deg,#667eea,#764ba2);
+font-family: Arial, sans-serif;
+background:#0f172a;
 color:white;
-text-align:center;
+display:flex;
+flex-direction:column;
+height:100vh;
 }
 
-/* LANDING */
-#landing{
-padding:20px;
+/* HEADER */
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:15px;
+background:#1e293b;
 }
 
-.card{
-background:white;
-color:#333;
-padding:20px;
-margin:15px auto;
-border-radius:15px;
-max-width:500px;
-box-shadow:0 10px 20px rgba(0,0,0,0.2);
-}
-
-button{
-padding:12px 20px;
-border:none;
+.points{
+background:#22c55e;
+padding:5px 10px;
 border-radius:10px;
-background:#ff7a18;
-color:white;
-cursor:pointer;
-font-size:16px;
 }
 
-button:hover{
-background:#ff5500;
+/* CHARACTER */
+.character{
+text-align:center;
+font-size:50px;
+margin-top:10px;
 }
 
 /* CHAT */
-#chatUI{
-display:none;
-height:100vh;
-background:#0f172a;
-flex-direction:column;
-}
-
-header{
-padding:15px;
-background:#1e293b;
-font-weight:bold;
-}
-
 .chat{
 flex:1;
 overflow-y:auto;
@@ -66,8 +48,8 @@ padding:15px;
 
 .message{
 margin:10px;
-padding:10px;
-border-radius:10px;
+padding:12px;
+border-radius:12px;
 max-width:70%;
 }
 
@@ -80,6 +62,7 @@ margin-left:auto;
 background:#334155;
 }
 
+/* INPUT */
 .input-area{
 display:flex;
 padding:10px;
@@ -89,9 +72,24 @@ background:#1e293b;
 input{
 flex:1;
 padding:12px;
+border-radius:10px;
 border:none;
-border-radius:8px;
-outline:none;
+}
+
+button{
+padding:10px 14px;
+border:none;
+border-radius:10px;
+background:#f97316;
+color:white;
+cursor:pointer;
+}
+
+/* GAME */
+#gamePanel{
+display:none;
+padding:20px;
+text-align:center;
 }
 
 </style>
@@ -99,61 +97,49 @@ outline:none;
 
 <body>
 
-<!-- LANDING -->
-<div id="landing">
-<h1>🎈 NeuroAI Kids</h1>
-<p>Fun, Safe & Smart AI for Kids 🚀</p>
+<header>
+🎈 NeuroAI Kids
+<div class="points">⭐ Points: <span id="points">0</span></div>
+</header>
 
-<div class="card">
-<h3>🧠 Learn Anything</h3>
-<p>Ask questions and get simple answers!</p>
-</div>
-
-<div class="card">
-<h3>🎨 Be Creative</h3>
-<p>Create stories and ideas!</p>
-</div>
-
-<div class="card">
-<h3>🔒 Safe AI</h3>
-<p>Friendly and safe experience.</p>
-</div>
-
-<br>
-<button onclick="startChat()">Start Chatting 🎈</button>
-</div>
-
-<!-- CHAT -->
-<div id="chatUI">
-<header>🎈 NeuroAI Kids</header>
+<div class="character">🧸</div>
 
 <div class="chat" id="chat"></div>
 
 <div class="input-area">
 <input id="input" placeholder="Ask anything..." />
 <button onclick="send()">Send</button>
+<button onclick="startVoice()">🎤</button>
+<button onclick="openGame()">🎮</button>
 </div>
+
+<!-- GAME -->
+<div id="gamePanel">
+<h2>🎮 Math Game</h2>
+<p id="question"></p>
+<input id="answer" placeholder="Your answer..." />
+<br><br>
+<button onclick="checkAnswer()">Submit</button>
 </div>
 
 <script>
 
-// SWITCH TO CHAT + ✅ WELCOME MESSAGE
-function startChat(){
-  document.getElementById("landing").style.display = "none";
-  document.getElementById("chatUI").style.display = "flex";
+// 🏆 POINT SYSTEM
+let points = 0;
 
-  addMessage("Hi 👋 I’m NeuroAI Kids! Ask me anything 🎈","ai");
+function addPoints(n){
+  points += n;
+  document.getElementById("points").innerText = points;
 }
 
-// SESSION MEMORY
+// 🧠 SESSION
 let sessionId = localStorage.getItem("kidsSession");
-
 if (!sessionId) {
   sessionId = "kids-" + Math.random().toString(36).substring(2);
   localStorage.setItem("kidsSession", sessionId);
 }
 
-// ADD MESSAGE
+// 💬 ADD MESSAGE
 function addMessage(text, sender){
   const chat = document.getElementById("chat");
   const msg = document.createElement("div");
@@ -163,7 +149,14 @@ function addMessage(text, sender){
   chat.scrollTop = chat.scrollHeight;
 }
 
-// SEND MESSAGE
+// 🔊 SPEAK
+function speak(text){
+  const speech = new SpeechSynthesisUtterance(text);
+  speech.lang = "en-US";
+  window.speechSynthesis.speak(speech);
+}
+
+// 🚀 SEND MESSAGE
 async function send(){
   const input = document.getElementById("input");
   const text = input.value.trim();
@@ -172,10 +165,9 @@ async function send(){
   addMessage(text,"user");
   input.value = "";
 
-  // ✅ LOADING EFFECT
   const loading = document.createElement("div");
   loading.className = "message ai";
-  loading.innerText = "Typing...";
+  loading.innerText = "Thinking...";
   document.getElementById("chat").appendChild(loading);
 
   try{
@@ -190,20 +182,74 @@ async function send(){
     });
 
     const data = await res.json();
-
     loading.remove();
-    addMessage(data.reply || "No response","ai");
+
+    const reply = data.reply || "No response";
+
+    addMessage(reply,"ai");
+
+    // 🔊 SPEAK RESPONSE
+    speak(reply);
+
+    // 🏆 GIVE POINTS
+    addPoints(5);
 
   }catch{
     loading.remove();
-    addMessage("⚠️ Error connecting","ai");
+    addMessage("⚠️ Error","ai");
   }
+}
+
+// 🎤 VOICE INPUT
+function startVoice(){
+  const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  recognition.lang = "en-US";
+
+  recognition.onresult = function(event){
+    const text = event.results[0][0].transcript;
+    document.getElementById("input").value = text;
+    send();
+  };
+
+  recognition.start();
+}
+
+// 🎮 GAME
+let correctAnswer = 0;
+
+function openGame(){
+  document.getElementById("gamePanel").style.display = "block";
+  generateQuestion();
+}
+
+function generateQuestion(){
+  const a = Math.floor(Math.random()*10);
+  const b = Math.floor(Math.random()*10);
+  correctAnswer = a + b;
+
+  document.getElementById("question").innerText = `What is ${a} + ${b}?`;
+}
+
+function checkAnswer(){
+  const userAnswer = document.getElementById("answer").value;
+
+  if(parseInt(userAnswer) === correctAnswer){
+    alert("🎉 Correct!");
+    addPoints(10);
+  } else {
+    alert("❌ Try again!");
+  }
+
+  generateQuestion();
 }
 
 // ENTER KEY
 document.getElementById("input").addEventListener("keypress",function(e){
   if(e.key==="Enter") send();
 });
+
+// 👋 WELCOME
+addMessage("Hi 👋 I’m your AI friend 🧸! Let's learn and play 🎈","ai");
 
 </script>
 
